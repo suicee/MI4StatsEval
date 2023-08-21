@@ -8,6 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+##NF implementation from https://github.com/ikostrikov/pytorch-flows
+
 def get_flow_model(num_blocks,num_inputs, num_hidden, num_cond_inputs,seed=1):
 
     torch.manual_seed( seed)

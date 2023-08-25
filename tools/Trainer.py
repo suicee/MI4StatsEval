@@ -6,16 +6,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tools.DataLoader import SummaryDataset
 from tools.flows import get_flow_model
-from tools.FCN import ANN_Classifier
+from tools.FCN import ANN_Classifier,ANN
 from tools.MINE import batch_to_score,get_MI_estimator
 from torch.utils.data import DataLoader,random_split
 from torch.optim.lr_scheduler import StepLR
 import logging
 import numpy as np
 import os
-# torch.autograd.set_detect_anomaly(True)
 
-logger=logging.getLogger(__name__)
 
 # Weight initialization 
 def weight_init_fn(module):
@@ -39,7 +37,7 @@ def plot_MI(MIs,show_result=False):
         plt.plot(MIs)
        
     plt.xlabel('Epochs')
-    plt.ylabel('Estiamted MI')
+    plt.ylabel('Value')
     plt.draw()
     plt.pause(0.001)
 
@@ -64,11 +62,7 @@ def train_mine(dataset,para,MI_estimator_name:string,train_info:dict={'epochs':1
 
     MI_estimator=get_MI_estimator(MI_estimator_name)
 
-
-
-    # logger.info([dataset,train_info,MI_estimator_name])
-
-    DS=SummaryDataset(dataset,para,norm=True)
+    DS=SummaryDataset(dataset,para,norm=False)
 
     train_frac=0.8
     val_frac=0.2
@@ -88,9 +82,6 @@ def train_mine(dataset,para,MI_estimator_name:string,train_info:dict={'epochs':1
 
     model.apply(weight_init_fn)
 
-    logger.info(model)
-
-
     optimizer = optim.Adam(model.parameters(), lr=lr)
     device = torch.device('cuda')
     model.to(device=device)
@@ -108,7 +99,6 @@ def train_mine(dataset,para,MI_estimator_name:string,train_info:dict={'epochs':1
         epoch_MI=0
 
         model.train()
-        logger.info(f'epoch{epoch}-----training')
 
 
         for batches in train_data:
@@ -209,11 +199,6 @@ def train_ba(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learni
     Hx=np.log(4)
 
     model=get_flow_model(num_blocks=num_blocks,num_inputs=num_inputs,num_hidden=num_hidden,num_cond_inputs=num_cond_inputs)
-
-
-    logger.info(model)
-
-
     optimizer = optim.Adam(model.parameters(), lr=lr,weight_decay=wd)
     scheduler = StepLR(optimizer, step_size=100, gamma=0.8)
 
@@ -232,8 +217,6 @@ def train_ba(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learni
         epoch_MI=0
         eval_MI=0
         model.train()
-        logger.info(f'epoch{epoch}-----training')
-
         for batches in train_data:
             datas=batches['data']
             params=batches['param']
@@ -307,9 +290,6 @@ def train_ba(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learni
 #     model=get_flow_model(num_blocks=num_blocks,num_inputs=num_inputs,num_hidden=num_hidden,num_cond_inputs=num_cond_inputs)
 
 
-#     logger.info(model)
-
-
 #     optimizer = optim.Adam(model.parameters(), lr=lr,weight_decay=wd)
 #     scheduler = StepLR(optimizer, step_size=100, gamma=0.8)
 
@@ -329,7 +309,6 @@ def train_ba(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learni
 #         epoch_MI=0
 #         eval_MI=0
 #         model.train()
-#         logger.info(f'epoch{epoch}-----training')
 
 #         for batches in train_data:
 #             datas=batches['data']
@@ -347,13 +326,7 @@ def train_ba(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learni
 #             epoch_MI+=-loss.item()
 
 #             optimizer.step()
-#             trained+=batch_size
-
-#             if(trained%1000==0):
-#                 logger.info(f"{trained}//{n_train}")
-        
-
-        
+#             trained+=batch_size     
         
 #         epoch_MI=epoch_MI/len(train_data)+Hx
 #         total_MIs.append(epoch_MI)
@@ -447,6 +420,90 @@ def feature_selection(data_ori,para_ori):
 
 
 
+import copy
+def train_SumNet(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learning_rate':1e-3},verbose=True):
+    '''
+    train a NN a compress input summaries into same dimension of parameters.
+    '''
+
+    epochs=train_info['epochs']
+    batch_size=train_info['batch_size']
+    lr=train_info['learning_rate']
+
+    DS=SummaryDataset(dataset,para,norm=False)
+
+    train_frac=0.8
+    val_frac=0.2
+
+    n_train=int(len(DS)*train_frac)
+    n_val=len(DS)-n_train
+
+    train, val= random_split(DS, [n_train, n_val])
+
+    train_data=DataLoader(train,batch_size=batch_size,shuffle=True)
+    val_data=DataLoader(val,batch_size=batch_size,shuffle=True)
+    model=ANN(input_dim=dataset.shape[1],hidden_dims=[128,64,32],output_dim=para.shape[1],apply_dropout=False)
+
+
+    # model.apply(weight_init_fn)
+    optimizer = optim.SGD(model.parameters(), lr=lr)
+    MSE=nn.MSELoss()
+    device = torch.device('cuda')
+    model.to(device=device)
+
+
+    best_eval=np.inf
+    best_model=None
+
+    losses=[]
+    eval_losses=[]
+    for epoch in range(epochs): 
+        epoch_loss=0
+        model.train()
+        for batches in train_data:
+      
+            datas=(batches['data'])
+            params=batches['param']
+            datas = datas.to(device=device, dtype=torch.float32)
+            params = params.to(device=device, dtype=torch.float32)
+
+            model.zero_grad()
+            preds=model(datas)
+            loss=MSE(preds,params)
+            loss.backward()
+
+            epoch_loss+=loss.item()     
+            optimizer.step()
+
+        model.eval()
+        eval_loss=0
+        for batches in val_data:
+            datas=(batches['data'])
+            params=batches['param']
+            datas = datas.to(device=device, dtype=torch.float32)
+            params = params.to(device=device, dtype=torch.float32)
+
+            with torch.no_grad():
+                preds=model(datas)
+                loss=MSE(preds,params)
+
+                eval_loss+=loss.item()    
+
+        if eval_loss<best_eval:
+            
+            best_eval=epoch_loss
+            best_model=copy.deepcopy(model)
+    
+        losses.append(epoch_loss/len(train_data))
+        eval_losses.append(eval_loss/len(val_data))
+        if verbose:
+            plot_MI(np.array([losses,eval_losses]))
+
+    if verbose:
+        plot_MI(np.array([losses,eval_losses]),show_result=True)
+            
+
+    return best_model
 
 
 

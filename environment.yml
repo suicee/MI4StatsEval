@@ -1,0 +1,31 @@
+name: env
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - matplotlib=3.5.1=py38h06a4308_1
+  - matplotlib-base=3.5.1=py38ha18d171_1
+  - matplotlib-inline=0.1.2=pyhd3eb1b0_2
+  - ninja=1.10.2=h06a4308_5
+  - ninja-base=1.10.2=hd09550d_5
+  - numpy=1.22.3=py38he7a7128_0
+  - numpy-base=1.22.3=py38hf524024_0
+  - python=3.8.13=h12debd9_0
+  - python-dateutil=2.8.2=pyhd3eb1b0_0
+  - python-fastjsonschema=2.15.1=pyhd3eb1b0_0
+  - python_abi=3.8=2_cp38
+  - pytorch=1.12.0=py3.8_cuda11.3_cudnn8.3.2_0
+  - pytorch-mutex=1.0=cuda
+  - pip:
+    - cython==0.29.32
+    - lightgbm==3.3.3
+    - natsort==8.1.0
+    - pylians==0.3
+    - scikit-image==0.19.3
+    - scikit-learn==1.1.1
+    - scipy==1.8.1
+    - seaborn==0.11.1
+    - sklearn==0.0
+    - tools21cm==2.0.1
+

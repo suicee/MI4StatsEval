@@ -379,6 +379,7 @@ def add_random_dim(data,N_dim=10):
 
 from sklearn.model_selection import train_test_split
 import lightgbm as lgb
+from lightgbm import early_stopping
 import contextlib
 
 def feature_selection(data_ori,para_ori):
@@ -405,7 +406,7 @@ def feature_selection(data_ori,para_ori):
                                     min_data_in_leaf=200,
                                     n_estimators=150,
                                 importance_type='gain',random_state=i)
-                dtr.fit(xtrain, ytrain[:,idx_para],eval_set=[(xtest,ytest[:,idx_para])], eval_metric=['l2'], early_stopping_rounds=5);
+                dtr.fit(xtrain, ytrain[:,idx_para],eval_set=[(xtest,ytest[:,idx_para])], eval_metric=['l2'], callbacks=[early_stopping(5)]);
 
             ips[i]=dtr.feature_importances_[:N_feature]
             ips_ns[i]=dtr.feature_importances_[-N_noise:]

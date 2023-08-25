@@ -70,9 +70,18 @@ def train_mine(dataset,para,MI_estimator_name:string,train_info:dict={'epochs':1
 
     DS=SummaryDataset(dataset,para,norm=True)
 
-    n_train=len(DS)
+    train_frac=0.8
+    val_frac=0.2
 
-    train_data=DataLoader(DS,batch_size=batch_size,shuffle=True)
+    n_train=int(len(DS)*train_frac)
+    n_val=len(DS)-n_train
+
+    train, val= random_split(DS, [n_train, n_val])
+
+    train_data=DataLoader(train,batch_size=batch_size,shuffle=True)
+    val_data=DataLoader(val,batch_size=batch_size,shuffle=True)
+
+    total_data=DataLoader(DS,batch_size=batch_size,shuffle=True)
 
     model=ANN_Classifier(data_dim=dataset.shape[1],para_dim=para.shape[1],hidden_dims=[256,128,64,32],apply_dropout=False)
 
@@ -87,12 +96,13 @@ def train_mine(dataset,para,MI_estimator_name:string,train_info:dict={'epochs':1
     model.to(device=device)
 
 
-    best_epoch=0
-
+    best_eval=-np.inf
+    total_MI=0
+    train_MIs=[]
+    eval_MIs=[]
     total_MIs=[]
     for epoch in range(epochs): 
 
-        trained=0
         epoch_loss=0
 
         epoch_MI=0
@@ -124,20 +134,49 @@ def train_mine(dataset,para,MI_estimator_name:string,train_info:dict={'epochs':1
             epoch_MI+=-(loss.item())*len(datas)/n_train
             
             optimizer.step()
-            trained+=batch_size
 
-            if(trained%1000==0):
-                logger.info(f"{trained}//{n_train}")
-        
-  
+        train_MIs.append(epoch_MI)
 
-        total_MIs.append(epoch_MI)
+        eval_MI=eval_mine(model,MI_estimator,val_data)
+        eval_MIs.append(eval_MI)
+
+        if eval_MI>best_eval:
+            
+            best_eval=eval_MI
+            best_epoch=epoch
+            total_MI=eval_mine(model,MI_estimator,total_data)
+
+        total_MIs.append(total_MI)
+
         if verbose:
             plot_MI(np.array(total_MIs))
+
+        if verbose:
+            plot_MI(np.array([train_MIs,eval_MIs,total_MIs]))
+
+    if verbose:
+        plot_MI(np.array([train_MIs,eval_MIs,total_MIs]),show_result=True)
             
 
+    return train_MIs,eval_MIs,total_MIs
+
+def eval_mine(model,MI_estimator,val_data,device='cuda'):
+    model.eval()
+    eval_MI=0
+    for batches in val_data:
     
-    return total_MIs
+        datas=batches['data']
+        params=batches['param']
+
+        datas = datas.to(device=device, dtype=torch.float32)
+        params = params.to(device=device, dtype=torch.float32)
+        with torch.no_grad():
+            score=batch_to_score(datas,params,model)
+            loss=-MI_estimator(score)
+            eval_MI+=-(loss.item())*len(datas)/len(val_data.dataset)
+    
+    return eval_MI
+        
 
 
 def train_ba(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learning_rate':1e-3},verbose=True):
@@ -189,7 +228,6 @@ def train_ba(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learni
     total_MIs=[]
     for epoch in range(epochs): 
 
-        trained=0
         epoch_loss=0
         epoch_MI=0
         eval_MI=0
@@ -211,14 +249,7 @@ def train_ba(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learni
             epoch_loss+=loss.item()
             epoch_MI+=-loss.item()
 
-            optimizer.step()
-            trained+=batch_size
-
-            if(trained%1000==0):
-                logger.info(f"{trained}//{n_train}")
-        
-
-        
+            optimizer.step()   
         
         epoch_MI=epoch_MI/len(train_data)+Hx
         train_MIs.append(epoch_MI)

@@ -40,14 +40,8 @@ def get_patches(map,patch_size=256,nside=512):
     map=hp.reorder(map,r2n=True)
 
     patches=np.zeros((n_patch,patch_size,patch_size))
+    fll_order=get_matrix_order(patch_size)
 
-    # print('start getting order')
-    if os.path.exists(f'{patch_size}.npy'):
-        fll_order=np.load(f'{patch_size}.npy')
-    else:
-        fll_order=get_matrix_order(patch_size)
-        np.save(f'{patch_size}.npy',fll_order)
-    # print('finish getting order')    
     for loc_idx in range(n_patch):
         patches[loc_idx]=map[loc_idx*patch_size**2:(loc_idx+1)*patch_size**2][fll_order]
     

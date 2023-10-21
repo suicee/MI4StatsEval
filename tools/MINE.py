@@ -21,13 +21,48 @@ def batch_to_score(batch_x, batch_y, MI_net):
 
     # feature_size=batch_x.size()[1]
 
-    #add dim in batches so that we can combine input batches into a [bs_size*neg_size,feature_size] tensor
+    #add dim in batches so that we can combine input batches into a [bs_size,bs_size,feature_size] tensor
     batch_x_ = batch_x.view(batch_size, 1, -1).expand(-1, batch_size, -1)
     batch_y_ = batch_y.view(1, batch_size, -1).expand(batch_size, -1, -1)
 
     score = MI_net(batch_x_, batch_y_)
 
-    # pos_neg_pair=torch.cat((batch_pos_,batch_neg_),dim=2).view(batch_size*neg_size,-1)
+    # pos_neg_pair=torch.cat((batch_pos_,batch_neg_),dim=2).view(batch_size,bs_size,-1)
+    assert score.size()[-1] == 1, f"wrong score dim:{score.size()}"
+    score_matrix = score.squeeze(-1)
+
+    return score_matrix
+
+def batch_to_score_with_r(batch_x, batch_y, MI_net, r):
+    '''
+    batch_x: data summaries
+    batch_y: parameters
+    MI_net: network for approximate f(x,y)
+    r: network for approximate r(y|x)
+
+    combine the input variable x batch [bs_size,feature_size]/variable y batch [bs_size,feature_size] 
+    with samples from rinto score Matrix [bs_size,bs_size]
+    where input (x,y) is treated as samples from p(x,y), insert into dignal of score matrix
+    and r is treated as samples from r(x,y), insert into off-diagonal of score matrix
+    see arXiv:2306.00608 for explanation
+    '''
+    batch_size = batch_x.size()[0]
+
+
+    #add dim in batches so that we can combine input batches into a [bs_size,bs_size,feature_size] tensor
+    batch_x_ = batch_x.view(batch_size, 1, -1).expand(-1, batch_size, -1)
+
+    #sample batch_size pair of y for each x from r(y|x)
+    cond_x=batch_x_.reshape(batch_size*batch_size,-1)
+    cond_x=cond_x.to(batch_x.device)
+
+    with torch.no_grad():
+        batch_y_=(r.sample(batch_size**2,cond_inputs=cond_x)).view(batch_size,batch_size,-1)
+        #set dignal elements to true y samples from p(x,y)
+        batch_y_[range(batch_size), range(batch_size)] = batch_y
+
+    score = MI_net(batch_x_, batch_y_)
+
     assert score.size()[-1] == 1, f"wrong score dim:{score.size()}"
     score_matrix = score.squeeze(-1)
 

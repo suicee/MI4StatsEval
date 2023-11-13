@@ -141,7 +141,7 @@ def nwj_with_js(score):
     return js_lb + (mi - js_lb).detach()
 
 
-def smile_lower_bound(f, clip=1):
+def smile_lower_bound(f, clip=5):
     if clip is not None:
         f_ = torch.clamp(f, -clip, clip)
     else:

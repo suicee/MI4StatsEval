@@ -206,10 +206,10 @@ def train_mine_with_r(dataset,
 
     model = ANN_Classifier(data_dim=dataset.shape[1],
                            para_dim=para.shape[1],
-                           hidden_dims=[256, 128, 64, 32],
+                           hidden_dims=[256, 128],
                            apply_dropout=False)
 
-    model.apply(weight_init_fn)
+    # model.apply(weight_init_fn)
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     device = torch.device('cuda')
@@ -339,7 +339,6 @@ def train_ba(dataset,
     model.to(device=device)
 
     best_eval = -np.inf
-    best_model = None
     total_MI = 0
     train_MIs = []
     eval_MIs = []
@@ -376,7 +375,7 @@ def train_ba(dataset,
 
             best_eval = eval_MI
             best_epoch = epoch
-            best_model_dict = model.state_dict()
+            best_model_dict = model.state_dict().copy()
             total_MI = eval_CE(model, total_data) + Hx
 
         total_MIs.append(total_MI)
@@ -388,7 +387,9 @@ def train_ba(dataset,
     if verbose:
         plot_MI(np.array([train_MIs, eval_MIs, total_MIs]), show_result=True)
 
-    return best_model,train_MIs, eval_MIs, total_MIs
+    #load best dict
+    model.load_state_dict(best_model_dict)
+    return model,train_MIs, eval_MIs, total_MIs
 
 
 # def train_ba_with_test(dataset,para,train_info:dict={'epochs':1000,'batch_size':32,'learning_rate':1e-3},verbose=True):

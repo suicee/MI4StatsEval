@@ -1,4 +1,3 @@
-
 from sklearn.model_selection import train_test_split
 import lightgbm as lgb
 from lightgbm import early_stopping
@@ -13,13 +12,13 @@ def add_random_dim(data, N_dim=10):
     return np.hstack((data, noise))
 
 
-def feature_selection(data_ori, para_ori):
+def feature_selection(data_ori,
+                      para_ori,
+                      N_noise=10,
+                      N_trail=100,
+                      selection_strength=3):
 
     N_feature = data_ori.shape[1]
-    N_noise = 10
-    N_trail = 100
-
-    selection_strength = 3
 
     ips = np.zeros((N_trail, N_feature))
     ips_ns = np.zeros((N_trail, N_noise))

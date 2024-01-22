@@ -21,7 +21,8 @@ Additionally, we have tried other mutual information estimators from papers such
 
 The `other_MI_estimators` folder currently consists of two notebooks, each utilizing a different method to evaluate the MI in the second experiment mentioned above:
 
-1. MI_Estimation_Smile.ipynb: Here, we conduct experiments with the [SMILE](https://arxiv.org/abs/1910.06222) estimator, which is a variance-reduced version of [MINE](https://arxiv.org/abs/1801.04062). This method employs the Donsker-Varadhan (DV) lower bound.
-3. MI_Estimation_KSG.ipynb: In this notebook, we explore the usage of the [KSG](https://arxiv.org/abs/cond-mat/0305641) estimator, a K-nearest neighbor-based MI estimation method. However, since KSG is applicable only to low-dimensional data, we integrate it with a further compression operation for the summaries.
+1. `MI_Estimation_Smile.ipynb`: Here, we conduct experiments with the [SMILE](https://arxiv.org/abs/1910.06222) estimator, which is a variance-reduced version of [MINE](https://arxiv.org/abs/1801.04062). This method employs the Donsker-Varadhan (DV) lower bound.
+2. `MI_Estimation_KSG.ipynb`: In this notebook, we explore the usage of the [KSG](https://arxiv.org/abs/cond-mat/0305641) estimator, a K-nearest neighbor-based MI estimation method. However, since KSG is applicable only to low-dimensional data, we integrate it with a further compression operation for the summaries.
+3. `MGC_CMB.ipynb` and `MGC.ipynb`: In these two notebooks we explore the usage of the [Multiscale Graph Correlation (MGC)](https://hyppo.neurodata.io/api/generated/hyppo.independence.mgc#hyppo.independence.MGC) to evaluate the correlation between different summaries and parameters.
 
 In all of our experiments, we have consistently observed that training a well-performing model is crucial for obtaining reliable results. Enhancing the training procedure with more sophisticated techniques can potentially improve the results obtained using all of these methods. If you have any ideas, comments or questions, please feel free to reach out to Ce Sui at suic20@mails.tsinghua.edu.cn.

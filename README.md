@@ -10,10 +10,10 @@ In this research, we study the application of mutual information to assess the e
 
 We conduct two experiments to demonstrate our method, using BA lower bound:
 
-* [Use MI to verify power spectrum is the optimal statistics for CMB-like gaussain random fields](MI_Estimation_CMB.ipynb)
+* [Use MI to verify power spectrum is the optimal statistics for CMB-like Gaussian random fields](MI_Estimation_CMB.ipynb)
 * [Compare different summary statistics in an EoR inference task, where the field is highly non-Gaussian](MI_Estimation_21cm.ipynb)
 
-We show that MI can correctly assess the effectiveness of differernt summary statistics in an given inference task.
+We show that MI can correctly assess the effectiveness of different summary statistics in a given inference task.
 
 ### Other MI estimators
 
